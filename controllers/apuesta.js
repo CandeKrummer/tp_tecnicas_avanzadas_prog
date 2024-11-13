@@ -80,16 +80,15 @@ const obtenerTotalApostadoPorCaballoYCarrera = async (idCarrera) => {
         });
 
         const caballos = await Caballo.find({
-            _id: { $in: Object.keys(totalPorCaballo).map(id => id) }
+            _id: { $in: Object.keys(totalPorCaballo) }
         });
 
         const resultados = caballos.map(caballo => ({
             idCaballo: caballo._id,
-            nombreCaballo: caballo.nombre, 
+            nombreCaballo: caballo.nombreCaballo,
             totalApostado: totalPorCaballo[caballo._id.toString()]
         }));
 
-        console.log(resultados);
         return resultados;
     } catch (error) {
         console.error(error);

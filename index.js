@@ -252,9 +252,9 @@ app.get("/total-apostado/:idCarrera", async (req, res) => {
 
 app.post('/cargar-ganador', Middleware.verify, Middleware.isAdmin, async (req, res) => {
     const { idCarrera, idCaballoGanador } = req.body;
-    
+
     const resultado = await CarreraController.cargarGanadorYCalcularGanancias(idCarrera, idCaballoGanador);
-    
+
     if (resultado.error) {
         res.status(500).json({ error: resultado.error });
     } else {
