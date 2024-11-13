@@ -304,3 +304,27 @@ app.post("/agregarCaballoACarrera", Middleware.verify, Middleware.isAdmin, async
         res.status(500).json({ message: "Error al agregar el caballo a la carrera", error });
     }
 });
+
+app.post("/carrera/:id/cambiar-estado", Middleware.verify, Middleware.isAdmin, async (req, res) => {
+    const carreraId = req.params.id;
+    const nuevoEstado = req.body.estado;
+
+    try {
+        const carrera = await CarreraController.getCarrera(carreraId);
+
+        if (!carrera) {
+            return res.status(404).json({ message: "La carrera no existe." });
+        }
+
+        if (carrera.estado === "finalizada") {
+            return res.status(400).json({ message: "No se puede cambiar el estado de una carrera finalizada." });
+        }
+
+        carrera.estado = nuevoEstado;
+        await carrera.save();
+
+        res.status(200).json({ message: "Estado de la carrera actualizado correctamente.", carrera });
+    } catch (error) {
+        res.status(500).json({ message: "Error al actualizar el estado de la carrera.", error });
+    }
+});

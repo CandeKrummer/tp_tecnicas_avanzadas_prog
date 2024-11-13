@@ -52,9 +52,12 @@ const deleteCarrera = async (id) => {
 
 const getProximasCarreras = async (limit, offset) => {
     const hoy = new Date();
-    const carreras = await Carrera.find({ fecha: { $gt: hoy } })
-        .limit(limit)
-        .skip(offset);
+    const carreras = await Carrera.find({
+        fecha: { $gt: hoy },
+        estado: { $nin: ["Finalizada", "En curso"] }
+    })
+    .limit(limit)
+    .skip(offset);
 
     return carreras;
 };
