@@ -5,22 +5,30 @@ const Usuario = require('../models/usuario');
 
 
 const addCarrera = async (fecha, estado, listaCaballos) => {
-
-    const nuevaCarrera = new Carrera(
-        {
+    try {
+        const nuevaCarrera = new Carrera({
             fecha: fecha,
             estado: estado,
             listaCaballos: listaCaballos,
             caballoGanador: {}
-        }
-    );
+        });
 
-    let carrera = await nuevaCarrera.save();
-    console.log("carrera neuva");
-    console.log(carrera);
-    return { carrera };
+        let carrera = await nuevaCarrera.save();
+        console.log("carrera nueva");
+        console.log(carrera);
 
-}
+        return {
+            success: true,
+            carrera: carrera
+        };
+    } catch (err) {
+        console.log(err);
+        return {
+            success: false,
+            message: "Error al crear la carrera"
+        };
+    }
+};
 
 const getAllACarreras = async (limit, offset) => {
 
@@ -43,12 +51,18 @@ const editCarrera = async (carrera) => {
     return result;
 }
 
-const deleteCarrera = async (id) => {
-
-    const result = await Carrera.findByIdAndDelete(id);
-
-    return result;
-}
+const deleteCarrera = async (idCarrera) => {
+    try {
+        const result = await Carrera.findByIdAndDelete(idCarrera);
+        if (!result) {
+            return { success: false, message: "Carrera no encontrada" };
+        }
+        return { success: true, message: "Carrera eliminada correctamente" };
+    } catch (err) {
+        console.error("Error al eliminar la carrera:", err);
+        return { success: false, message: "Error al eliminar la carrera" };
+    }
+};
 
 const getProximasCarreras = async (limit, offset) => {
     const hoy = new Date();
@@ -56,8 +70,8 @@ const getProximasCarreras = async (limit, offset) => {
         fecha: { $gt: hoy },
         estado: { $nin: ["Finalizada", "En curso"] }
     })
-    .limit(limit)
-    .skip(offset);
+        .limit(limit)
+        .skip(offset);
 
     return carreras;
 };
@@ -86,7 +100,7 @@ const cargarGanadorYCalcularGanancias = async (idCarrera, idCaballoGanador) => {
             if (apuesta.idCaballo.toString() === idCaballoGanador) {
                 const porcentajeApostado = apuesta.monto / totalApostadoCaballoGanador;
                 const ganancia = porcentajeApostado * totalApostadoEnCarrera;
-                
+
                 const apostador = await Usuario.findById(apuesta.idApostador);
                 if (apostador) {
                     apostador.dinero += ganancia;
@@ -101,13 +115,13 @@ const cargarGanadorYCalcularGanancias = async (idCarrera, idCaballoGanador) => {
             }
         }
 
-        const fechaActual = new Date(); 
+        const fechaActual = new Date();
         const carreraActualizada = await Carrera.findByIdAndUpdate(
             idCarrera,
             {
                 caballoGanador: idCaballoGanador,
                 estado: 'Finalizada',
-                fecha: fechaActual 
+                fecha: fechaActual
             },
             { new: true }
         );
@@ -122,4 +136,4 @@ const cargarGanadorYCalcularGanancias = async (idCarrera, idCaballoGanador) => {
     }
 };
 
-module.exports = { addCarrera, getAllACarreras, getCarrera, editCarrera, deleteCarrera, getProximasCarreras, cargarGanadorYCalcularGanancias}
+module.exports = { addCarrera, getAllACarreras, getCarrera, editCarrera, deleteCarrera, getProximasCarreras, cargarGanadorYCalcularGanancias }

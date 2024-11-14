@@ -3,26 +3,15 @@ const Caballo = require('../models/caballo');
 
 
 const addCaballo = async (nombreCaballo, nombreJinete) => {
-
     let caballoExiste = await Caballo.findOne({ nombreCaballo: nombreCaballo });
     if (!caballoExiste) {
-
-        const nuevoCaballo = new Caballo(
-            {
-                nombreCaballo: nombreCaballo,
-                nombreJinete: nombreJinete,
-            }
-        );
-
+        const nuevoCaballo = new Caballo({ nombreCaballo, nombreJinete });
         let caballo = await nuevoCaballo.save();
-        console.log("caballo nuevo");
-        console.log(caballo);
         return { caballo };
-
     } else {
         return false;
     }
-}
+};
 
 const getAllCaballos = async (limit, offset) => {
 
@@ -45,11 +34,17 @@ const editCaballo = async (caballo) => {
     return result;
 }
 
-const deleteCaballo = async (id) => {
-
-    const result = await Caballo.findByIdAndDelete(id);
-
-    return result;
-}
+const deleteCaballo = async (idCaballo) => {
+    try {
+        const result = await Caballo.findByIdAndDelete(idCaballo);
+        if (!result) {
+            return { success: false, message: "Caballo no encontrado" };
+        }
+        return { success: true, message: "Caballo eliminado correctamente" };
+    } catch (err) {
+        console.error("Error al eliminar el caballo:", err);
+        return { success: false, message: "Error al eliminar el caballo" };
+    }
+};
 
 module.exports = { addCaballo, getAllCaballos, getCaballo, editCaballo, deleteCaballo }

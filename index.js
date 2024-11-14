@@ -48,12 +48,13 @@ http.listen(PORT, () => {
 
 
 app.get("/", async (req, res) => {
-    res.json({ message: "Bienvenidos ¡A apostar!" });
+    res.json({ message: "Bienvenidos al sistema para apuestas de caballos" });
 })
 
 app.post("/auth/login", async (req, res) => {
     const mail = req.body.mail;
     const password = req.body.password;
+
     try {
         const result = await AuthController.login(mail, password);
         if (result) {
@@ -154,14 +155,9 @@ app.post("/apostar", Middleware.verify, async (req, res) => {
             return res.status(400).json({ message: "El caballo seleccionado no participa en esta carrera." });
         }
 
-        const apuesta = await ApuestaController.addApuesta(
-            monto,
-            idApostador,
-            idCarrera,
-            idCaballo
-        );
+        const apuesta = await ApuestaController.addApuesta(monto, idApostador, idCarrera, idCaballo);
 
-        res.status(201).json(apuesta);
+        res.status(201).json(apuesta); 
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Error al crear la apuesta", error });
@@ -169,28 +165,37 @@ app.post("/apostar", Middleware.verify, async (req, res) => {
 });
 
 app.post("/crear-caballo", Middleware.verify, Middleware.isAdmin, async (req, res) => {
-    let nombreCaballo = req.body.nombreCaballo;
-    let nombreJinete = req.body.nombreJinete;
+    let { nombreCaballo, nombreJinete } = req.body;
 
     try {
         const result = await CaballoController.addCaballo(nombreCaballo, nombreJinete);
-        if (result.success) {
-            res.status(201).send({ message: "El caballo se creó correctamente" });
+
+        if (result) {
+            res.status(201).send({ message: "El caballo se creó correctamente", caballo: result.caballo });
         } else {
-            res.status(409).send({ message: result.message });
+            res.status(409).send({ message: "El caballo ya existe" });
         }
     } catch (err) {
-        res.status(500).send({ message: "Error al crear el caballo" })
-        console.log(err)
+        res.status(500).send({ message: "Error al crear el caballo" });
     }
+});
 
-})
-
-app.get("/caballos", async (req, res) => {
+app.get("/caballos", Middleware.verify, Middleware.isAdmin, async (req, res) => {
     let limit = req.query.limit;
     let offset = req.query.offset;
     try {
         const results = await CaballoController.getAllCaballos(limit, offset);
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).send(error)
+    }
+})
+
+app.get("/carreras", Middleware.verify, Middleware.isAdmin, async (req, res) => {
+    let limit = req.query.limit;
+    let offset = req.query.offset;
+    try {
+        const results = await CaballoCarreras.getAllCarreras(limit, offset);
         res.status(200).json(results);
     } catch (error) {
         res.status(500).send(error)
@@ -209,23 +214,25 @@ app.get("/usuarios", Middleware.verify, Middleware.isAdmin, async (req, res) => 
 })
 
 app.post("/crear-carrera", Middleware.verify, Middleware.isAdmin, async (req, res) => {
-    let fecha = req.body.fecha;
+    let fecha = new Date(req.body.fecha);
     let estado = req.body.estado;
     let listaCaballos = req.body.listaCaballos;
 
     try {
         const result = await CarreraController.addCarrera(fecha, estado, listaCaballos);
         if (result.success) {
-            res.status(201).send({ message: "La carrera se creó correctamente" });
+            res.status(201).send({
+                message: "La carrera se creó correctamente",
+                carrera: result.carrera
+            });
         } else {
             res.status(409).send({ message: result.message });
         }
     } catch (err) {
-        res.status(500).send({ message: "Error al crear la carrera" })
-        console.log(err)
+        res.status(500).send({ message: "Error al crear la carrera" });
+        console.log(err);
     }
-
-})
+});
 
 app.get("/proximas-carreras", async (req, res) => {
     let limit = parseInt(req.query.limit) || 10;
@@ -326,5 +333,54 @@ app.post("/carrera/:id/cambiar-estado", Middleware.verify, Middleware.isAdmin, a
         res.status(200).json({ message: "Estado de la carrera actualizado correctamente.", carrera });
     } catch (error) {
         res.status(500).json({ message: "Error al actualizar el estado de la carrera.", error });
+    }
+});
+
+app.delete("/eliminar-apuesta", Middleware.verify, Middleware.isAdmin, async (req, res) => {
+    try {
+        const { idApuesta } = req.body;
+        console.log("apuesta a eliminar", idApuesta)
+        const result = await ApuestaController.deleteApuesta(idApuesta);
+
+        if (!result.success) {
+            return res.status(404).send({ message: result.message });
+        }
+
+        res.status(200).send({ message: result.message });
+    } catch (err) {
+        console.error("Error al eliminar la apuesta:", err);
+        res.status(500).send({ message: "Error al eliminar la apuesta" });
+    }
+});
+
+app.delete("/eliminar-caballo", Middleware.verify, Middleware.isAdmin, async (req, res) => {
+    try {
+        const { idCaballo } = req.body;
+        const result = await CaballoController.deleteCaballo(idCaballo);
+
+        if (!result.success) {
+            return res.status(404).send({ message: result.message });
+        }
+
+        res.status(200).send({ message: result.message });
+    } catch (err) {
+        console.error("Error al eliminar el caballo:", err);
+        res.status(500).send({ message: "Error al eliminar el caballo" });
+    }
+});
+
+app.delete("/eliminar-carrera", Middleware.verify, Middleware.isAdmin, async (req, res) => {
+    try {
+        const { idCarrera } = req.body;
+        const result = await CarreraController.deleteCarrera(idCarrera);
+
+        if (!result.success) {
+            return res.status(404).send({ message: result.message });
+        }
+
+        res.status(200).send({ message: result.message });
+    } catch (err) {
+        console.error("Error al eliminar la carrera:", err);
+        res.status(500).send({ message: "Error al eliminar la carrera" });
     }
 });
